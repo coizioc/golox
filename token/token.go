@@ -51,7 +51,8 @@ const (
 	VAR    = "var"
 	WHILE  = "while"
 
-	EOF = "EOF"
+	ILLEGAL = "ILLEGAL"
+	EOF     = "EOF"
 )
 
 type Token struct {

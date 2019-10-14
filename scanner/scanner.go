@@ -1,9 +1,11 @@
 package scanner
 
 import (
+	"fmt"
 	"golox/loxerror"
 	"golox/token"
 	"strconv"
+	"strings"
 )
 
 type Scanner struct {
@@ -16,6 +18,24 @@ type Scanner struct {
 
 func New(source string) *Scanner {
 	return &Scanner{source, []token.Token{}, 0, 0, 1}
+}
+
+func (sc *Scanner) ScanTokens() []token.Token {
+	for !sc.isAtEnd() {
+		sc.Start = sc.Current
+		sc.scanToken()
+	}
+
+	sc.Tokens = append(sc.Tokens, token.Token{token.EOF, "", nil, sc.Line})
+	return sc.Tokens
+}
+
+func (sc *Scanner) String() string {
+	sb := strings.Builder{}
+	for i, tok := range sc.Tokens {
+		sb.WriteString(fmt.Sprintf("%3d: %s\n", i, tok.String()))
+	}
+	return sb.String()
 }
 
 func (sc *Scanner) isAtEnd() bool {
@@ -122,16 +142,6 @@ func (sc *Scanner) handleString() {
 func (sc *Scanner) addToken(tokenType token.TokenType, literal interface{}) {
 	text := sc.Source[sc.Start:sc.Current]
 	sc.Tokens = append(sc.Tokens, token.Token{tokenType, text, literal, sc.Line})
-}
-
-func (sc *Scanner) ScanTokens() []token.Token {
-	for !sc.isAtEnd() {
-		sc.Start = sc.Current
-		sc.scanToken()
-	}
-
-	sc.Tokens = append(sc.Tokens, token.Token{token.EOF, "", nil, sc.Line})
-	return sc.Tokens
 }
 
 func (sc *Scanner) scanToken() {

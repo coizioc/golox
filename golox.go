@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"golox/loxerror"
-	"golox/scanner"
+	"golox/vm"
 )
 
 func runFile(path string) {
@@ -31,14 +31,8 @@ func runPrompt() {
 }
 
 func run(source string) {
-	loxScanner := scanner.New(source)
-	tokens := loxScanner.ScanTokens()
-	for _, token := range tokens {
-		fmt.Println(token)
-	}
-	if loxerror.HadError {
-		os.Exit(65)
-	}
+	vmachine := vm.New()
+	vmachine.Interpret(source)
 }
 
 func main() {
@@ -50,5 +44,4 @@ func main() {
 	} else {
 		runPrompt()
 	}
-
 }
