@@ -42,12 +42,15 @@ func TestBinaryOp(t *testing.T) {
 		{"3 / 4", 0.75},
 		{"3 + 6 / 2", 6.0},
 		{"3 * (3 + 1)", 12.0},
+		{"3 == 4", false},
+		{"3 != 4", true},
 		{"3 > 4", false},
 		{"3 < 4", true},
 		{"3 >= 3", true},
 		{"4 >= 3", true},
 		{"3 <= 3", true},
 		{"4 <= 3", false},
+		{"\"Hello\" + \" World!\"", "Hello World!"},
 	}
 
 	for _, test := range tests {

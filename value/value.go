@@ -5,11 +5,13 @@ import (
 )
 
 type Type int
+type ObjType int
 
 const (
 	VAL_BOOL Type = iota
 	VAL_NIL
 	VAL_NUMBER
+	VAL_STRING
 )
 
 type Value struct {
@@ -29,12 +31,20 @@ func NumberVal(value float64) Value {
 	return Value{VAL_NUMBER, value}
 }
 
+func StringVal(value string) Value {
+	return Value{VAL_STRING, value}
+}
+
 func (v Value) AsBool() bool {
 	return v.Data.(bool)
 }
 
 func (v Value) AsNumber() float64 {
 	return v.Data.(float64)
+}
+
+func (v Value) AsString() string {
+	return v.Data.(string)
 }
 
 func (v Value) Equals(v2 Value) bool {
@@ -49,6 +59,8 @@ func (v Value) Equals(v2 Value) bool {
 		return true
 	case VAL_NUMBER:
 		return v.AsNumber() == v2.AsNumber()
+	case VAL_STRING:
+		return v.AsString() == v2.AsString()
 	default:
 		// Not reachable
 		return false
@@ -67,6 +79,10 @@ func (v Value) IsNumber() bool {
 	return v.Type == VAL_NUMBER
 }
 
+func (v Value) IsString() bool {
+	return v.Type == VAL_STRING
+}
+
 func (v Value) String() string {
 	switch v.Type {
 	case VAL_BOOL:
@@ -75,6 +91,8 @@ func (v Value) String() string {
 		return fmt.Sprintf("nil")
 	case VAL_NUMBER:
 		return fmt.Sprintf("%f", v.Data.(float64))
+	case VAL_STRING:
+		return fmt.Sprintf("%s", v.Data.(string))
 	default:
 		return fmt.Sprintf("%v", v.Data)
 	}

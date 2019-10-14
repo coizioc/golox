@@ -6,7 +6,6 @@ import (
 	"golox/scanner"
 	"golox/token"
 	"golox/value"
-	"strconv"
 )
 
 const (
@@ -84,7 +83,7 @@ func (p *Parser) InitRules() {
 	rules[token.LESS_EQUAL] = &ParseRule{nil, p.binary, PREC_COMPARISON}
 
 	rules[token.IDENTIFIER] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.STRING] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.STRING] = &ParseRule{p.string, nil, PREC_NONE}
 	rules[token.NUMBER] = &ParseRule{p.number, nil, PREC_NONE}
 
 	rules[token.AND] = &ParseRule{nil, nil, PREC_NONE}
@@ -240,8 +239,13 @@ func (p *Parser) literal() {
 }
 
 func (p *Parser) number() {
-	val, _ := strconv.ParseFloat(p.PrevToken().Lexeme, 64)
+	val := p.PrevToken().Literal.(float64)
 	p.emitConstant(value.NumberVal(val))
+}
+
+func (p *Parser) string() {
+	val := p.PrevToken().Literal.(string)
+	p.emitConstant(value.StringVal(val))
 }
 
 func (p *Parser) unary() {

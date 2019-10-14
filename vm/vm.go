@@ -62,11 +62,16 @@ func (vm *VM) line() int {
 */
 
 func (vm *VM) binaryOp(op byte) {
-	if !(vm.peek(0).IsNumber() && vm.peek(1).IsNumber()) {
+	var a, b float64
+	byteb, bytea := vm.peek(0), vm.peek(1)
+	if op == chunk.OP_ADD && bytea.IsString() && byteb.IsString() {
+		vm.concatenate()
+		return
+	} else if bytea.IsNumber() && byteb.IsNumber() {
+		b, a = vm.pop().AsNumber(), vm.pop().AsNumber()
+	} else {
 		loxerror.Error(-1, "Operands must be a number")
 	}
-
-	b, a := vm.pop().AsNumber(), vm.pop().AsNumber()
 
 	switch op {
 	case chunk.OP_GREATER:
@@ -82,6 +87,12 @@ func (vm *VM) binaryOp(op byte) {
 	case chunk.OP_DIVIDE:
 		vm.push(value.NumberVal(a / b))
 	}
+}
+
+func (vm *VM) concatenate() {
+	b, a := vm.pop().AsString(), vm.pop().AsString()
+
+	vm.push(value.StringVal(a + b))
 }
 
 func (vm *VM) isFalsey(v value.Value) bool {
