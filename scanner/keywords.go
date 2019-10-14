@@ -2,7 +2,7 @@ package scanner
 
 import "golox/token"
 
-var keywords = map[string]token.TokenType{
+var keywords = map[string]token.Type{
 	"and":    token.AND,
 	"class":  token.CLASS,
 	"else":   token.ELSE,

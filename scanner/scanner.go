@@ -139,7 +139,7 @@ func (sc *Scanner) handleString() {
 	sc.addToken(token.STRING, value)
 }
 
-func (sc *Scanner) addToken(tokenType token.TokenType, literal interface{}) {
+func (sc *Scanner) addToken(tokenType token.Type, literal interface{}) {
 	text := sc.Source[sc.Start:sc.Current]
 	sc.Tokens = append(sc.Tokens, token.Token{tokenType, text, literal, sc.Line})
 }

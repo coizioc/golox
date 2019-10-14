@@ -2,7 +2,7 @@ package token
 
 import "fmt"
 
-type TokenType string
+type Type string
 
 const (
 	// Single-character tokens
@@ -56,7 +56,7 @@ const (
 )
 
 type Token struct {
-	Type    TokenType
+	Type    Type
 	Lexeme  string
 	Literal interface{}
 	Line    int

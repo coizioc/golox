@@ -5,6 +5,7 @@ import (
 	"golox/loxerror"
 	"golox/scanner"
 	"golox/token"
+	"golox/value"
 	"strconv"
 )
 
@@ -30,7 +31,7 @@ type ParseRule struct {
 	Precedence int
 }
 
-var rules = make(map[token.TokenType]*ParseRule)
+var rules = make(map[token.Type]*ParseRule)
 
 type Parser struct {
 	Current        int
@@ -38,20 +39,25 @@ type Parser struct {
 	CompilingChunk *chunk.Chunk
 }
 
-func Compile(source string, c *chunk.Chunk) bool {
-
+func New(source string, c *chunk.Chunk) *Parser {
 	sc := scanner.New(source)
-	sc.ScanTokens()
 
+	return &Parser{0, sc, c}
+}
+
+func (p *Parser) Compile() bool {
+	p.Scanner.ScanTokens()
 	if loxerror.HadError {
 		return false
 	}
-
-	p := &Parser{0, sc, c}
+	if p.Scanner.Tokens[0].Type == token.EOF {
+		return false
+	}
 
 	p.parse()
 
 	p.endCompiler()
+
 	return !loxerror.HadError
 }
 
@@ -68,14 +74,14 @@ func (p *Parser) InitRules() {
 	rules[token.SLASH] = &ParseRule{nil, p.binary, PREC_FACTOR}
 	rules[token.STAR] = &ParseRule{nil, p.binary, PREC_FACTOR}
 
-	rules[token.BANG] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.BANG_EQUAL] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.BANG] = &ParseRule{p.unary, nil, PREC_NONE}
+	rules[token.BANG_EQUAL] = &ParseRule{nil, p.binary, PREC_EQUALITY}
 	rules[token.EQUAL] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.EQUAL_EQUAL] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.GREATER] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.GREATER_EQUAL] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.LESS] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.LESS_EQUAL] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.EQUAL_EQUAL] = &ParseRule{nil, p.binary, PREC_EQUALITY}
+	rules[token.GREATER] = &ParseRule{nil, p.binary, PREC_COMPARISON}
+	rules[token.GREATER_EQUAL] = &ParseRule{nil, p.binary, PREC_COMPARISON}
+	rules[token.LESS] = &ParseRule{nil, p.binary, PREC_COMPARISON}
+	rules[token.LESS_EQUAL] = &ParseRule{nil, p.binary, PREC_COMPARISON}
 
 	rules[token.IDENTIFIER] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.STRING] = &ParseRule{nil, nil, PREC_NONE}
@@ -84,17 +90,17 @@ func (p *Parser) InitRules() {
 	rules[token.AND] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.CLASS] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.ELSE] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.FALSE] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.FALSE] = &ParseRule{p.literal, nil, PREC_NONE}
 	rules[token.FOR] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.FUN] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.IF] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.NIL] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.NIL] = &ParseRule{p.literal, nil, PREC_NONE}
 	rules[token.OR] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.PRINT] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.RETURN] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.SUPER] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.THIS] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.TRUE] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.TRUE] = &ParseRule{p.literal, nil, PREC_NONE}
 	rules[token.VAR] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.WHILE] = &ParseRule{nil, nil, PREC_NONE}
 
@@ -131,7 +137,7 @@ func (p *Parser) emitBytes(byte1, byte2 byte) {
 	p.emitByte(byte2)
 }
 
-func (p *Parser) emitConstant(value chunk.Value) {
+func (p *Parser) emitConstant(value value.Value) {
 	p.emitBytes(chunk.OP_CONSTANT, p.makeConstant(value))
 }
 
@@ -139,7 +145,7 @@ func (p *Parser) emitReturn() {
 	p.emitByte(chunk.OP_RETURN)
 }
 
-func (p *Parser) makeConstant(value chunk.Value) byte {
+func (p *Parser) makeConstant(value value.Value) byte {
 	constant := p.CurrChunk().AddValue(value)
 	// TODO if constant > UINT8_MAX
 	return constant
@@ -167,11 +173,11 @@ func (p *Parser) parsePrecedence(precedence int) {
 	}
 }
 
-func (p *Parser) getRule(tokenType token.TokenType) *ParseRule {
+func (p *Parser) getRule(tokenType token.Type) *ParseRule {
 	return rules[tokenType]
 }
 
-func (p *Parser) consume(tokenType token.TokenType, errMsg string) {
+func (p *Parser) consume(tokenType token.Type, errMsg string) {
 	if p.CurrToken().Type == tokenType {
 		p.advance()
 	} else {
@@ -186,6 +192,18 @@ func (p *Parser) binary() {
 	p.parsePrecedence(rule.Precedence + 1)
 
 	switch operatorType {
+	case token.BANG_EQUAL:
+		p.emitBytes(chunk.OP_EQUAL, chunk.OP_NOT)
+	case token.EQUAL_EQUAL:
+		p.emitByte(chunk.OP_EQUAL)
+	case token.GREATER:
+		p.emitByte(chunk.OP_GREATER)
+	case token.GREATER_EQUAL:
+		p.emitBytes(chunk.OP_LESS, chunk.OP_NOT)
+	case token.LESS:
+		p.emitByte(chunk.OP_LESS)
+	case token.LESS_EQUAL:
+		p.emitBytes(chunk.OP_GREATER, chunk.OP_NOT)
 	case token.PLUS:
 		p.emitByte(chunk.OP_ADD)
 	case token.MINUS:
@@ -206,16 +224,32 @@ func (p *Parser) grouping() {
 	p.consume(token.RIGHT_PAREN, "Expect ')' after expression.")
 }
 
-func (p *Parser) number() {
-	value, _ := strconv.ParseFloat(p.PrevToken().Lexeme, 64)
-	p.emitConstant(chunk.Value(value))
+func (p *Parser) literal() {
+	// fmt.Printf("Prev token: %s", p.Scanner.Tokens[p.Current - 1].String())
+	switch p.PrevToken().Type {
+	case token.FALSE:
+		p.emitByte(chunk.OP_FALSE)
+	case token.NIL:
+		p.emitByte(chunk.OP_NIL)
+	case token.TRUE:
+		p.emitByte(chunk.OP_TRUE)
+	default:
+		// Unreachable
+		return
+	}
+}
 
+func (p *Parser) number() {
+	val, _ := strconv.ParseFloat(p.PrevToken().Lexeme, 64)
+	p.emitConstant(value.NumberVal(val))
 }
 
 func (p *Parser) unary() {
 	operatorType := p.PrevToken().Type
 	p.parsePrecedence(PREC_UNARY)
 	switch operatorType {
+	case token.BANG:
+		p.emitByte(chunk.OP_NOT)
 	case token.MINUS:
 		p.emitByte(chunk.OP_NEGATE)
 	default:
