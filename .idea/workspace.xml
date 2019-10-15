@@ -2,11 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a80aceeb-fe86-47c2-8437-b8202a6e6826" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/tests/statement_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chunk/chunk.go" beforeDir="false" afterPath="$PROJECT_DIR$/chunk/chunk.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/parser.go" beforeDir="false" afterPath="$PROJECT_DIR$/parser/parser.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/expression_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/tests/expression_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statement_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statement_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/vm/vm.go" beforeDir="false" afterPath="$PROJECT_DIR$/vm/vm.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -18,22 +17,10 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/token/token.go">
+        <entry file="file://$PROJECT_DIR$/chunk/chunk.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="32" column="7" selection-start-line="32" selection-start-column="7" selection-end-line="32" selection-end-column="7" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/vm/vm.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="247">
-              <caret line="163" column="34" selection-start-line="163" selection-start-column="34" selection-end-line="163" selection-end-column="34" />
-              <folding>
-                <element signature="e#12#93#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="346">
+              <caret line="123" column="44" selection-start-line="123" selection-start-column="44" selection-end-line="123" selection-end-column="44" />
             </state>
           </provider>
         </entry>
@@ -41,19 +28,19 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/parser/parser.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="196">
-              <caret line="198" column="37" selection-start-line="198" selection-start-column="37" selection-end-line="198" selection-end-column="37" />
+            <state relative-caret-position="-2102">
+              <caret line="445" column="5" selection-start-line="445" selection-start-column="5" selection-end-line="445" selection-end-column="5" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tests/expression_test.go">
+        <entry file="file://$PROJECT_DIR$/vm/vm.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="20" column="6" lean-forward="true" selection-start-line="17" selection-start-column="4" selection-end-line="20" selection-end-column="6" />
+            <state relative-caret-position="323">
+              <caret line="28" column="1" selection-start-line="28" selection-start-column="1" selection-end-line="28" selection-end-column="1" />
               <folding>
-                <element signature="e#15#48#0" expanded="true" />
+                <element signature="e#12#93#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -62,53 +49,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tests/statement_test.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="187">
-              <caret line="11" column="71" lean-forward="true" selection-start-line="11" selection-start-column="71" selection-end-line="11" selection-end-column="71" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tests/scanner_test.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="34">
-              <caret line="6" column="1" selection-start-line="6" selection-start-column="1" selection-end-line="6" selection-end-column="1" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/scanner/scanner.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="28" column="38" selection-start-line="28" selection-start-column="38" selection-end-line="28" selection-end-column="38" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/chunk/chunk.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="68">
-              <caret line="98" column="36" selection-start-line="98" selection-start-column="36" selection-end-line="98" selection-end-column="36" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/value/value.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="329">
-              <caret line="62" column="44" selection-start-line="62" selection-start-column="44" selection-end-line="62" selection-end-column="44" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/loxerror/loxError.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="238">
-              <caret line="17" selection-start-line="17" selection-end-line="17" />
+            <state relative-caret-position="-62">
+              <caret line="86" column="8" lean-forward="true" selection-start-line="86" selection-start-column="8" selection-end-line="86" selection-end-column="8" />
+              <folding>
+                <element signature="e#15#48#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -134,9 +79,11 @@
       <find>expect end</find>
       <find>s</find>
       <find>LESS_EQUAL</find>
+      <find>statement()</find>
     </findStrings>
     <replaceStrings>
       <replace />
+      <replace>p</replace>
     </replaceStrings>
     <dirStrings>
       <dir>C:\Users\kegeshan\go\src\golox\tests</dir>
@@ -162,9 +109,9 @@
         <option value="$PROJECT_DIR$/golox.go" />
         <option value="$PROJECT_DIR$/token/token.go" />
         <option value="$PROJECT_DIR$/value/value.go" />
+        <option value="$PROJECT_DIR$/tests/expression_test.go" />
         <option value="$PROJECT_DIR$/chunk/chunk.go" />
         <option value="$PROJECT_DIR$/parser/parser.go" />
-        <option value="$PROJECT_DIR$/tests/expression_test.go" />
         <option value="$PROJECT_DIR$/vm/vm.go" />
         <option value="$PROJECT_DIR$/tests/statement_test.go" />
       </list>
@@ -269,7 +216,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Test.go test tests">
+  <component name="RunManager" selected="Go Test.go test golox/tests">
     <configuration name="go build golox" type="GoApplicationRunConfiguration" factoryName="Go Application" nameIsGenerated="true">
       <module name="golox" />
       <working_directory value="$PROJECT_DIR$/" />
@@ -280,16 +227,7 @@
       <directory value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
-    <configuration name="go build golox.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="golox" />
-      <working_directory value="$PROJECT_DIR$/" />
-      <kind value="FILE" />
-      <filePath value="$PROJECT_DIR$/golox.go" />
-      <package value="golox" />
-      <directory value="$PROJECT_DIR$/" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestBinaryOp in golox/tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestFor in golox/tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="golox" />
       <working_directory value="$PROJECT_DIR$/tests" />
       <framework value="gotest" />
@@ -297,7 +235,18 @@
       <package value="golox/tests" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestBinaryOp$" />
+      <pattern value="^TestFor$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="TestIf in golox/tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="golox" />
+      <working_directory value="$PROJECT_DIR$/tests" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="golox/tests" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestIf$" />
       <method v="2" />
     </configuration>
     <configuration name="TestVarDecl in golox/tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
@@ -311,6 +260,17 @@
       <pattern value="^TestVarDecl$" />
       <method v="2" />
     </configuration>
+    <configuration name="TestWhile in golox/tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="golox" />
+      <working_directory value="$PROJECT_DIR$/tests" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="golox/tests" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/" />
+      <pattern value="^TestWhile$" />
+      <method v="2" />
+    </configuration>
     <configuration name="go test golox/tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="golox" />
       <working_directory value="$PROJECT_DIR$/tests" />
@@ -321,76 +281,65 @@
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
-    <configuration name="go test tests" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="golox" />
-      <working_directory value="$PROJECT_DIR$/tests" />
-      <framework value="gotest" />
-      <kind value="DIRECTORY" />
-      <package value="golox" />
-      <directory value="$PROJECT_DIR$/tests" />
-      <filePath value="$PROJECT_DIR$/" />
-      <method v="2" />
-    </configuration>
     <list>
       <item itemvalue="Go Build.go build golox" />
-      <item itemvalue="Go Build.go build golox.go" />
       <item itemvalue="Go Test.go test golox/tests" />
-      <item itemvalue="Go Test.TestBinaryOp in golox/tests" />
+      <item itemvalue="Go Test.TestIf in golox/tests" />
+      <item itemvalue="Go Test.TestFor in golox/tests" />
+      <item itemvalue="Go Test.TestWhile in golox/tests" />
       <item itemvalue="Go Test.TestVarDecl in golox/tests" />
-      <item itemvalue="Go Test.go test tests" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Test.go test tests" />
-        <item itemvalue="Go Test.TestVarDecl in golox/tests" />
         <item itemvalue="Go Test.go test golox/tests" />
-        <item itemvalue="Go Build.go build golox.go" />
-        <item itemvalue="Go Test.TestBinaryOp in golox/tests" />
+        <item itemvalue="Go Test.TestFor in golox/tests" />
+        <item itemvalue="Go Test.TestWhile in golox/tests" />
+        <item itemvalue="Go Test.TestVarDecl in golox/tests" />
+        <item itemvalue="Go Test.TestIf in golox/tests" />
       </list>
     </recent_temporary>
   </component>
   <component name="TestHistory">
-    <history-entry file="TestBinaryOp_in_golox_tests - 2019.10.14 at 10h 38m 21s.xml">
-      <configuration name="TestBinaryOp in golox/tests" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestVarDecl_in_golox_tests - 2019.10.15 at 00h 42m 17s.xml">
+      <configuration name="TestVarDecl in golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestBinaryOp_in_golox_tests - 2019.10.14 at 10h 46m 48s.xml">
-      <configuration name="TestBinaryOp in golox/tests" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestWhile_in_golox_tests - 2019.10.15 at 00h 42m 42s.xml">
+      <configuration name="TestWhile in golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestBinaryOp_in_golox_tests - 2019.10.14 at 12h 22m 53s.xml">
-      <configuration name="TestBinaryOp in golox/tests" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestWhile_in_golox_tests - 2019.10.15 at 00h 43m 02s.xml">
+      <configuration name="TestWhile in golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="TestBinaryOp_in_golox_tests - 2019.10.14 at 12h 23m 04s.xml">
-      <configuration name="TestBinaryOp in golox/tests" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestBinaryOp_in_golox_tests - 2019.10.14 at 12h 25m 22s.xml">
-      <configuration name="TestBinaryOp in golox/tests" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="TestBinaryOp_in_golox_tests - 2019.10.14 at 12h 36m 38s.xml">
-      <configuration name="TestBinaryOp in golox/tests" configurationId="GoTestRunConfiguration" />
-    </history-entry>
-    <history-entry file="go_test_golox_tests - 2019.10.14 at 21h 17m 14s.xml">
+    <history-entry file="go_test_golox_tests - 2019.10.15 at 00h 44m 22s.xml">
       <configuration name="go test golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="go_test_golox_tests - 2019.10.14 at 21h 17m 58s.xml">
-      <configuration name="go test golox/tests" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestFor_in_golox_tests - 2019.10.15 at 00h 45m 17s.xml">
+      <configuration name="TestFor in golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="go_test_golox_tests - 2019.10.14 at 21h 18m 33s.xml">
-      <configuration name="go test golox/tests" configurationId="GoTestRunConfiguration" />
+    <history-entry file="TestFor_in_golox_tests - 2019.10.15 at 00h 45m 44s.xml">
+      <configuration name="TestFor in golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
-    <history-entry file="go_test_golox_tests - 2019.10.14 at 21h 19m 25s.xml">
+    <history-entry file="TestFor_in_golox_tests - 2019.10.15 at 00h 45m 51s.xml">
+      <configuration name="TestFor in golox/tests" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestFor_in_golox_tests - 2019.10.15 at 00h 45m 59s.xml">
+      <configuration name="TestFor in golox/tests" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="TestFor_in_golox_tests - 2019.10.15 at 00h 46m 13s.xml">
+      <configuration name="TestFor in golox/tests" configurationId="GoTestRunConfiguration" />
+    </history-entry>
+    <history-entry file="go_test_golox_tests - 2019.10.15 at 00h 46m 22s.xml">
       <configuration name="go test golox/tests" configurationId="GoTestRunConfiguration" />
     </history-entry>
   </component>
   <component name="ToolWindowManager">
     <frame x="-6" y="-6" width="1613" height="873" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.21800643" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.21800643" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.33243608" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.33243608" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -415,7 +364,9 @@
     <MESSAGE value="Chapters 14-17." />
     <MESSAGE value="Chapter 18." />
     <MESSAGE value="Chapter 19." />
-    <option name="LAST_COMMIT_MESSAGE" value="Chapter 19." />
+    <MESSAGE value="Chapter 21." />
+    <MESSAGE value="Chapter 22." />
+    <option name="LAST_COMMIT_MESSAGE" value="Chapter 22." />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://C:/Go/src/io/ioutil/ioutil.go">
@@ -469,31 +420,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scanner/scanner.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="28" column="38" selection-start-line="28" selection-start-column="38" selection-end-line="28" selection-end-column="38" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/value/value.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="329">
-          <caret line="62" column="44" selection-start-line="62" selection-start-column="44" selection-end-line="62" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tests/scanner_test.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="34">
           <caret line="6" column="1" selection-start-line="6" selection-start-column="1" selection-end-line="6" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/chunk/chunk.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="68">
-          <caret line="98" column="36" selection-start-line="98" selection-start-column="36" selection-end-line="98" selection-end-column="36" />
         </state>
       </provider>
     </entry>
@@ -504,37 +434,61 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/vm/vm.go">
+    <entry file="file://$PROJECT_DIR$/scanner/scanner.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="247">
-          <caret line="163" column="34" selection-start-line="163" selection-start-column="34" selection-end-line="163" selection-end-column="34" />
-          <folding>
-            <element signature="e#12#93#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/parser/parser.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="196">
-          <caret line="198" column="37" selection-start-line="198" selection-start-column="37" selection-end-line="198" selection-end-column="37" />
+        <state relative-caret-position="272">
+          <caret line="28" column="38" selection-start-line="28" selection-start-column="38" selection-end-line="28" selection-end-column="38" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/tests/expression_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="20" column="6" lean-forward="true" selection-start-line="17" selection-start-column="4" selection-end-line="20" selection-end-column="6" />
+        <state relative-caret-position="805">
+          <caret line="58" column="25" selection-start-line="58" selection-start-column="25" selection-end-line="58" selection-end-column="25" />
           <folding>
             <element signature="e#15#48#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/value/value.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="329">
+          <caret line="62" column="44" selection-start-line="62" selection-start-column="44" selection-end-line="62" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/chunk/chunk.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="346">
+          <caret line="123" column="44" selection-start-line="123" selection-start-column="44" selection-end-line="123" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/parser/parser.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-2102">
+          <caret line="445" column="5" selection-start-line="445" selection-start-column="5" selection-end-line="445" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/vm/vm.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="323">
+          <caret line="28" column="1" selection-start-line="28" selection-start-column="1" selection-end-line="28" selection-end-column="1" />
+          <folding>
+            <element signature="e#12#93#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/tests/statement_test.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="187">
-          <caret line="11" column="71" lean-forward="true" selection-start-line="11" selection-start-column="71" selection-end-line="11" selection-end-column="71" />
+        <state relative-caret-position="-62">
+          <caret line="86" column="8" lean-forward="true" selection-start-line="86" selection-start-column="8" selection-end-line="86" selection-end-column="8" />
+          <folding>
+            <element signature="e#15#48#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

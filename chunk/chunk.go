@@ -27,6 +27,9 @@ const (
 	OP_NOT
 	OP_NEGATE
 	OP_PRINT
+	OP_JUMP
+	OP_JUMP_IF_FALSE
+	OP_LOOP
 	OP_RETURN
 )
 
@@ -107,6 +110,18 @@ func (c *Chunk) String() string {
 			sb.WriteString("NEGATE\n")
 		case OP_PRINT:
 			sb.WriteString("PRINT\n")
+		case OP_JUMP:
+			i += 2
+			jumpLen := c.Code[i-2]<<8 | c.Code[i-1]
+			sb.WriteString(fmt.Sprintf("JUMP %d\n", jumpLen))
+		case OP_JUMP_IF_FALSE:
+			i += 2
+			jumpLen := c.Code[i-2]<<8 | c.Code[i-1]
+			sb.WriteString(fmt.Sprintf("JUMP_IF_FALSE %d\n", jumpLen))
+		case OP_LOOP:
+			i += 2
+			jumpLen := c.Code[i-2]<<8 | c.Code[i-1]
+			sb.WriteString(fmt.Sprintf("LOOP %d\n", jumpLen))
 		case OP_RETURN:
 			sb.WriteString("RETURN\n")
 		default:

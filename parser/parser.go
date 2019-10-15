@@ -90,7 +90,7 @@ func (p *Parser) InitRules() {
 	rules[token.STRING] = &ParseRule{p.string, nil, PREC_NONE}
 	rules[token.NUMBER] = &ParseRule{p.number, nil, PREC_NONE}
 
-	rules[token.AND] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.AND] = &ParseRule{nil, p.and, PREC_AND}
 	rules[token.CLASS] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.ELSE] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.FALSE] = &ParseRule{p.literal, nil, PREC_NONE}
@@ -98,7 +98,7 @@ func (p *Parser) InitRules() {
 	rules[token.FUN] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.IF] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.NIL] = &ParseRule{p.literal, nil, PREC_NONE}
-	rules[token.OR] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.OR] = &ParseRule{nil, p.or, PREC_OR}
 	rules[token.PRINT] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.RETURN] = &ParseRule{nil, nil, PREC_NONE}
 	rules[token.SUPER] = &ParseRule{nil, nil, PREC_NONE}
@@ -156,8 +156,40 @@ func (p *Parser) emitConstant(value value.Value) {
 	p.emitBytes(chunk.OP_CONSTANT, p.makeConstant(value))
 }
 
+func (p *Parser) emitJump(instruction byte) int {
+	p.emitByte(instruction)
+	// Store jump address as 16-bit number.
+	p.emitByte(0xff)
+	p.emitByte(0xff)
+	return len(p.CurrChunk().Code) - 2
+}
+
+func (p *Parser) emitLoop(loopStart int) {
+	p.emitByte(chunk.OP_LOOP)
+
+	offset := len(p.CurrChunk().Code) - loopStart + 2
+	if offset > 65535 {
+		loxerror.Error(-1, "Loop body too large.")
+	}
+
+	p.emitByte(byte(offset>>8) & 0xff)
+	p.emitByte(byte(offset) & 0xff)
+}
+
 func (p *Parser) emitReturn() {
 	p.emitByte(chunk.OP_RETURN)
+}
+
+func (p *Parser) patchJump(offset int) {
+	jump := len(p.CurrChunk().Code) - offset - 2
+
+	// If jump is greater than 2^16.
+	if jump > 65536 {
+		loxerror.Error(-1, "Too much code to jump over.")
+	}
+
+	p.CurrChunk().Code[offset] = byte((jump >> 8) & 0xff)
+	p.CurrChunk().Code[offset+1] = byte(jump & 0xff)
 }
 
 func (p *Parser) makeConstant(value value.Value) byte {
@@ -315,6 +347,13 @@ func (p *Parser) consume(tokenType token.Type, errMsg string) {
 	}
 }
 
+func (p *Parser) and(canAssign bool) {
+	endJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
+	p.emitByte(chunk.OP_POP)
+	p.parsePrecedence(PREC_AND)
+	p.patchJump(endJump)
+}
+
 func (p *Parser) binary(canAssign bool) {
 	operatorType := p.PrevToken().Type
 
@@ -370,9 +409,77 @@ func (p *Parser) expressionStatement() {
 	p.emitByte(chunk.OP_POP)
 }
 
+func (p *Parser) forStatement() {
+	p.beginScope()
+
+	p.consume(token.LEFT_PAREN, "Expect '(' after 'for'.")
+	if p.match(token.SEMICOLON) {
+		// No initializer.
+	} else if p.match(token.VAR) {
+		p.varDeclaration()
+	} else {
+		p.expressionStatement()
+	}
+
+	loopStart := len(p.CurrChunk().Code)
+
+	exitJump := -1
+	if !p.match(token.SEMICOLON) {
+		p.expression()
+		p.consume(token.SEMICOLON, "Expect ';' after loop condition.")
+
+		exitJump = p.emitJump(chunk.OP_JUMP_IF_FALSE)
+		p.emitByte(chunk.OP_POP)
+	}
+
+	if !p.match(token.RIGHT_PAREN) {
+		bodyJump := p.emitJump(chunk.OP_JUMP)
+
+		incrementStart := len(p.CurrChunk().Code)
+		p.expression()
+		p.emitByte(chunk.OP_POP)
+		p.consume(token.RIGHT_PAREN, "Expect ')' after for clauses.")
+
+		p.emitLoop(loopStart)
+		loopStart = incrementStart
+		p.patchJump(bodyJump)
+	}
+
+	p.statement()
+
+	p.emitLoop(loopStart)
+
+	if exitJump != -1 {
+		p.patchJump(exitJump)
+		p.emitByte(chunk.OP_POP)
+	}
+
+	p.endScope()
+}
+
 func (p *Parser) grouping(canAssign bool) {
 	p.expression()
 	p.consume(token.RIGHT_PAREN, "Expect ')' after expression.")
+}
+
+func (p *Parser) ifStatement() {
+	p.consume(token.LEFT_PAREN, "Expect '(' after 'if'.")
+	p.expression()
+	p.consume(token.RIGHT_PAREN, "Expect ')' after condition.")
+
+	thenJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
+	p.emitByte(chunk.OP_POP)
+	p.statement()
+
+	elseJump := p.emitJump(chunk.OP_JUMP)
+
+	p.patchJump(thenJump)
+	p.emitByte(chunk.OP_POP)
+
+	if p.match(token.ELSE) {
+		p.statement()
+	}
+	p.patchJump(elseJump)
 }
 
 func (p *Parser) literal(canAssign bool) {
@@ -395,6 +502,17 @@ func (p *Parser) number(canAssign bool) {
 	p.emitConstant(value.NumberVal(val))
 }
 
+func (p *Parser) or(canAssign bool) {
+	elseJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
+	endJump := p.emitJump(chunk.OP_JUMP)
+
+	p.patchJump(elseJump)
+	p.emitByte(chunk.OP_POP)
+
+	p.parsePrecedence(PREC_OR)
+	p.patchJump(endJump)
+}
+
 func (p *Parser) printStatement() {
 	p.expression()
 	p.consume(token.SEMICOLON, "Expect ; after value.")
@@ -404,10 +522,16 @@ func (p *Parser) printStatement() {
 func (p *Parser) statement() {
 	if p.match(token.PRINT) {
 		p.printStatement()
+	} else if p.match(token.FOR) {
+		p.forStatement()
+	} else if p.match(token.IF) {
+		p.ifStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		p.beginScope()
 		p.block()
 		p.endScope()
+	} else if p.match(token.WHILE) {
+		p.whileStatement()
 	} else {
 		p.expressionStatement()
 	}
@@ -444,4 +568,22 @@ func (p *Parser) varDeclaration() {
 	}
 	p.consume(token.SEMICOLON, "Expect ';' after variable declaration.")
 	p.defineVariable(global)
+}
+
+func (p *Parser) whileStatement() {
+	loopStart := len(p.CurrChunk().Code)
+
+	p.consume(token.LEFT_PAREN, "Expect '(' after 'while'.")
+	p.expression()
+	p.consume(token.RIGHT_PAREN, "Expect ')' after condition.")
+
+	exitJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
+
+	p.emitByte(chunk.OP_POP)
+	p.statement()
+
+	p.emitLoop(loopStart)
+
+	p.patchJump(exitJump)
+	p.emitByte(chunk.OP_POP)
 }

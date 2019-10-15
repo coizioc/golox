@@ -111,6 +111,12 @@ func (vm *VM) readConstant() value.Value {
 	return vm.Chunk.Constants[byteRead]
 }
 
+func (vm *VM) readShort() int {
+	vm.IP += 2
+	short := int(vm.Chunk.Code[vm.IP-2])<<8 | int(vm.Chunk.Code[vm.IP-1])
+	return short
+}
+
 func (vm *VM) run() InterpretResult {
 	for {
 		instruction := vm.readByte()
@@ -168,6 +174,17 @@ func (vm *VM) run() InterpretResult {
 			printVal := vm.pop()
 			fmt.Println(printVal.Data)
 			vm.Out = printVal.Data
+		case chunk.OP_JUMP:
+			offset := vm.readShort()
+			vm.IP += offset
+		case chunk.OP_JUMP_IF_FALSE:
+			offset := vm.readShort()
+			if vm.isFalsey(vm.peek(0)) {
+				vm.IP += offset
+			}
+		case chunk.OP_LOOP:
+			offset := vm.readShort()
+			vm.IP -= offset
 		case chunk.OP_RETURN:
 			return INTERPRET_OK
 		}
