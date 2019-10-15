@@ -5,8 +5,9 @@ import (
 	"testing"
 )
 
-func RunTest(t *testing.T, source string, result interface{}) {
+func RunExpressionTest(t *testing.T, source string, result interface{}) {
 	vmachine := vm.New()
+	source = "print " + source + ";"
 	vmachine.Interpret(source)
 	if vmachine.Out != result {
 		t.Errorf("Incorrect result for source '%s'. Expected: %v. Got: %v.", source, result, vmachine.Out)
@@ -27,7 +28,7 @@ func TestUnaryOp(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		RunTest(t, test.source, test.result)
+		RunExpressionTest(t, test.source, test.result)
 	}
 }
 
@@ -42,6 +43,7 @@ func TestBinaryOp(t *testing.T) {
 		{"3 / 4", 0.75},
 		{"3 + 6 / 2", 6.0},
 		{"3 * (3 + 1)", 12.0},
+		{"(5 - (3 - 1)) + -1", 2.0},
 		{"3 == 4", false},
 		{"3 != 4", true},
 		{"3 > 4", false},
@@ -50,10 +52,10 @@ func TestBinaryOp(t *testing.T) {
 		{"4 >= 3", true},
 		{"3 <= 3", true},
 		{"4 <= 3", false},
-		{"\"Hello\" + \" World!\"", "Hello World!"},
+		{`"Hello" + " World!"`, "Hello World!"},
 	}
 
 	for _, test := range tests {
-		RunTest(t, test.source, test.result)
+		RunExpressionTest(t, test.source, test.result)
 	}
 }

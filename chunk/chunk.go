@@ -11,6 +11,10 @@ const (
 	OP_NIL
 	OP_TRUE
 	OP_FALSE
+	OP_POP
+	OP_GET_GLOBAL
+	OP_DEFINE_GLOBAL
+	OP_SET_GLOBAL
 	OP_EQUAL
 	OP_GREATER
 	OP_LESS
@@ -20,6 +24,7 @@ const (
 	OP_DIVIDE
 	OP_NOT
 	OP_NEGATE
+	OP_PRINT
 	OP_RETURN
 )
 
@@ -30,6 +35,10 @@ type Chunk struct {
 
 func New() *Chunk {
 	return &Chunk{[]byte{}, []value.Value{}}
+}
+
+func (c *Chunk) getConstant() {
+
 }
 
 func (c *Chunk) String() string {
@@ -54,6 +63,20 @@ func (c *Chunk) String() string {
 			sb.WriteString("TRUE\n")
 		case OP_FALSE:
 			sb.WriteString("FALSE\n")
+		case OP_POP:
+			sb.WriteString("POP\n")
+		case OP_GET_GLOBAL:
+			i++
+			constant := c.Constants[c.Code[i]]
+			sb.WriteString(fmt.Sprintf("GET_GLOBAL %v\n", constant))
+		case OP_DEFINE_GLOBAL:
+			i++
+			constant := c.Constants[c.Code[i]]
+			sb.WriteString(fmt.Sprintf("DEFINE_GLOBAL %v\n", constant))
+		case OP_SET_GLOBAL:
+			i++
+			constant := c.Constants[c.Code[i]]
+			sb.WriteString(fmt.Sprintf("SET_GLOBAL %v\n", constant))
 		case OP_EQUAL:
 			sb.WriteString("EQUAL\n")
 		case OP_GREATER:
@@ -72,6 +95,8 @@ func (c *Chunk) String() string {
 			sb.WriteString("NOT\n")
 		case OP_NEGATE:
 			sb.WriteString("NEGATE\n")
+		case OP_PRINT:
+			sb.WriteString("PRINT\n")
 		case OP_RETURN:
 			sb.WriteString("RETURN\n")
 		default:

@@ -22,7 +22,7 @@ const (
 	PREC_PRIMARY
 )
 
-type ParseFn = func()
+type ParseFn = func(canAssign bool)
 
 type ParseRule struct {
 	Prefix     ParseFn
@@ -55,8 +55,6 @@ func (p *Parser) Compile() bool {
 
 	p.parse()
 
-	p.endCompiler()
-
 	return !loxerror.HadError
 }
 
@@ -82,7 +80,7 @@ func (p *Parser) InitRules() {
 	rules[token.LESS] = &ParseRule{nil, p.binary, PREC_COMPARISON}
 	rules[token.LESS_EQUAL] = &ParseRule{nil, p.binary, PREC_COMPARISON}
 
-	rules[token.IDENTIFIER] = &ParseRule{nil, nil, PREC_NONE}
+	rules[token.IDENTIFIER] = &ParseRule{p.variable, nil, PREC_NONE}
 	rules[token.STRING] = &ParseRule{p.string, nil, PREC_NONE}
 	rules[token.NUMBER] = &ParseRule{p.number, nil, PREC_NONE}
 
@@ -123,6 +121,18 @@ func (p *Parser) advance() {
 	p.Current += 1
 }
 
+func (p *Parser) check(tokenType token.Type) bool {
+	return p.CurrToken().Type == tokenType
+}
+
+func (p *Parser) match(tokenType token.Type) bool {
+	if !p.check(tokenType) {
+		return false
+	}
+	p.advance()
+	return true
+}
+
 func (p *Parser) endCompiler() {
 	p.emitReturn()
 }
@@ -152,8 +162,10 @@ func (p *Parser) makeConstant(value value.Value) byte {
 
 func (p *Parser) parse() {
 	p.InitRules()
-	p.expression()
-	p.consume(token.EOF, "Expect end of expression.")
+	for !p.match(token.EOF) {
+		p.declaration()
+	}
+	p.endCompiler()
 }
 
 func (p *Parser) parsePrecedence(precedence int) {
@@ -161,15 +173,46 @@ func (p *Parser) parsePrecedence(precedence int) {
 	prefixRule := p.getRule(p.PrevToken().Type).Prefix
 	if prefixRule == nil {
 		loxerror.Error(p.PrevToken().Line, "Expect expression.")
-	} else {
-		prefixRule()
+		return
 	}
+
+	canAssign := precedence <= PREC_ASSIGNMENT
+	prefixRule(canAssign)
 
 	for precedence <= p.getRule(p.CurrToken().Type).Precedence {
 		p.advance()
 		infixRule := p.getRule(p.PrevToken().Type).Infix
-		infixRule()
+		infixRule(canAssign)
 	}
+
+	if canAssign && p.match(token.EQUAL) {
+		loxerror.Error(-1, "Invalid assignment target.")
+		p.expression()
+	}
+}
+
+func (p *Parser) defineVariable(global byte) {
+	p.emitBytes(chunk.OP_DEFINE_GLOBAL, global)
+}
+
+func (p *Parser) namedVariable(name token.Token, canAssign bool) {
+	arg := p.identifierConstant(name)
+
+	if canAssign && p.match(token.EQUAL) {
+		p.expression()
+		p.emitBytes(chunk.OP_SET_GLOBAL, arg)
+	} else {
+		p.emitBytes(chunk.OP_GET_GLOBAL, arg)
+	}
+}
+
+func (p *Parser) parseVariable(errorMessage string) byte {
+	p.consume(token.IDENTIFIER, errorMessage)
+	return p.identifierConstant(p.PrevToken())
+}
+
+func (p *Parser) identifierConstant(name token.Token) byte {
+	return p.CurrChunk().AddValue(value.StringVal(name.Lexeme))
 }
 
 func (p *Parser) getRule(tokenType token.Type) *ParseRule {
@@ -184,7 +227,7 @@ func (p *Parser) consume(tokenType token.Type, errMsg string) {
 	}
 }
 
-func (p *Parser) binary() {
+func (p *Parser) binary(canAssign bool) {
 	operatorType := p.PrevToken().Type
 
 	rule := p.getRule(operatorType)
@@ -214,16 +257,30 @@ func (p *Parser) binary() {
 	}
 }
 
+func (p *Parser) declaration() {
+	if p.match(token.VAR) {
+		p.varDeclaration()
+	} else {
+		p.statement()
+	}
+}
+
 func (p *Parser) expression() {
 	p.parsePrecedence(PREC_ASSIGNMENT)
 }
 
-func (p *Parser) grouping() {
+func (p *Parser) expressionStatement() {
+	p.expression()
+	p.consume(token.SEMICOLON, "Expect ';' after expression.")
+	p.emitByte(chunk.OP_POP)
+}
+
+func (p *Parser) grouping(canAssign bool) {
 	p.expression()
 	p.consume(token.RIGHT_PAREN, "Expect ')' after expression.")
 }
 
-func (p *Parser) literal() {
+func (p *Parser) literal(canAssign bool) {
 	// fmt.Printf("Prev token: %s", p.Scanner.Tokens[p.Current - 1].String())
 	switch p.PrevToken().Type {
 	case token.FALSE:
@@ -238,17 +295,31 @@ func (p *Parser) literal() {
 	}
 }
 
-func (p *Parser) number() {
+func (p *Parser) number(canAssign bool) {
 	val := p.PrevToken().Literal.(float64)
 	p.emitConstant(value.NumberVal(val))
 }
 
-func (p *Parser) string() {
+func (p *Parser) printStatement() {
+	p.expression()
+	p.consume(token.SEMICOLON, "Expect ; after value.")
+	p.emitByte(chunk.OP_PRINT)
+}
+
+func (p *Parser) statement() {
+	if p.match(token.PRINT) {
+		p.printStatement()
+	} else {
+		p.expressionStatement()
+	}
+}
+
+func (p *Parser) string(canAssign bool) {
 	val := p.PrevToken().Literal.(string)
 	p.emitConstant(value.StringVal(val))
 }
 
-func (p *Parser) unary() {
+func (p *Parser) unary(canAssign bool) {
 	operatorType := p.PrevToken().Type
 	p.parsePrecedence(PREC_UNARY)
 	switch operatorType {
@@ -259,4 +330,19 @@ func (p *Parser) unary() {
 	default:
 		return
 	}
+}
+
+func (p *Parser) variable(canAssign bool) {
+	p.namedVariable(p.PrevToken(), canAssign)
+}
+
+func (p *Parser) varDeclaration() {
+	global := p.parseVariable("Expect variable name")
+	if p.match(token.EQUAL) {
+		p.expression()
+	} else {
+		p.emitByte(chunk.OP_NIL)
+	}
+	p.consume(token.SEMICOLON, "Expect ';' after variable declaration.")
+	p.defineVariable(global)
 }

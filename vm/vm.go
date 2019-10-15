@@ -17,14 +17,15 @@ const (
 )
 
 type VM struct {
-	Chunk *chunk.Chunk
-	IP    int
-	Stack []value.Value
-	Out   interface{}
+	Chunk   *chunk.Chunk
+	IP      int
+	Stack   []value.Value
+	Globals map[string]value.Value
+	Out     interface{}
 }
 
 func New() *VM {
-	return &VM{nil, 0, []value.Value{}, nil}
+	return &VM{nil, 0, []value.Value{}, make(map[string]value.Value), nil}
 }
 
 func (vm *VM) Interpret(source string) InterpretResult {
@@ -123,6 +124,26 @@ func (vm *VM) run() InterpretResult {
 			vm.push(value.BoolVal(true))
 		case chunk.OP_FALSE:
 			vm.push(value.BoolVal(false))
+		case chunk.OP_POP:
+			vm.pop()
+		case chunk.OP_GET_GLOBAL:
+			name := vm.readConstant().AsString()
+			val, ok := vm.Globals[name]
+			if !ok {
+				loxerror.Error(-1, "Undefined variable '"+name+"'.")
+				return INTERPRET_RUNTIME_ERROR
+			}
+			vm.push(val)
+		case chunk.OP_DEFINE_GLOBAL:
+			name := vm.readConstant().AsString()
+			vm.Globals[name] = vm.pop()
+		case chunk.OP_SET_GLOBAL:
+			name := vm.readConstant().AsString()
+			_, ok := vm.Globals[name]
+			if !ok {
+				loxerror.Error(-1, "Undefined variable '"+name+"'.")
+			}
+			vm.Globals[name] = vm.peek(0)
 		case chunk.OP_EQUAL:
 			b, a := vm.pop(), vm.pop()
 			vm.push(value.BoolVal(a.Equals(b)))
@@ -137,10 +158,11 @@ func (vm *VM) run() InterpretResult {
 				return INTERPRET_RUNTIME_ERROR
 			}
 			vm.push(value.NumberVal(-vm.pop().AsNumber()))
+		case chunk.OP_PRINT:
+			printVal := vm.pop()
+			fmt.Println(printVal.Data)
+			vm.Out = printVal.Data
 		case chunk.OP_RETURN:
-			retVal := vm.pop()
-			fmt.Println(retVal.Data)
-			vm.Out = retVal.Data
 			return INTERPRET_OK
 		}
 	}
