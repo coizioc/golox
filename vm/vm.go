@@ -126,6 +126,12 @@ func (vm *VM) run() InterpretResult {
 			vm.push(value.BoolVal(false))
 		case chunk.OP_POP:
 			vm.pop()
+		case chunk.OP_GET_LOCAL:
+			slot := vm.readByte()
+			vm.push(vm.Stack[slot])
+		case chunk.OP_SET_LOCAL:
+			slot := vm.readByte()
+			vm.Stack[slot] = vm.peek(0)
 		case chunk.OP_GET_GLOBAL:
 			name := vm.readConstant().AsString()
 			val, ok := vm.Globals[name]

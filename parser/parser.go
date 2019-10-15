@@ -32,7 +32,13 @@ type ParseRule struct {
 
 var rules = make(map[token.Type]*ParseRule)
 
+type Local struct {
+	Name  token.Token
+	Depth int
+}
 type Parser struct {
+	Locals         []Local
+	ScopeDepth     int
 	Current        int
 	Scanner        *scanner.Scanner
 	CompilingChunk *chunk.Chunk
@@ -41,7 +47,7 @@ type Parser struct {
 func New(source string, c *chunk.Chunk) *Parser {
 	sc := scanner.New(source)
 
-	return &Parser{0, sc, c}
+	return &Parser{[]Local{}, 0, 0, sc, c}
 }
 
 func (p *Parser) Compile() bool {
@@ -191,23 +197,74 @@ func (p *Parser) parsePrecedence(precedence int) {
 	}
 }
 
+func (p *Parser) getRule(tokenType token.Type) *ParseRule {
+	return rules[tokenType]
+}
+
+func (p *Parser) addLocal(name token.Token) {
+	local := Local{name, -1}
+	p.Locals = append(p.Locals, local)
+}
+
+func (p *Parser) declareVariable() {
+	if p.ScopeDepth == 0 {
+		return
+	}
+
+	name := p.PrevToken()
+
+	for i := len(p.Locals) - 1; i >= 0; i-- {
+		local := p.Locals[i]
+		if local.Depth != -1 && local.Depth < p.ScopeDepth {
+			break
+		}
+
+		if p.identifiersEqual(name, local.Name) {
+			loxerror.Error(-1, "Variable with this name already declared in this scope.")
+		}
+	}
+
+	p.addLocal(name)
+}
+
 func (p *Parser) defineVariable(global byte) {
+	if p.ScopeDepth > 0 {
+		p.markInitialized()
+		return
+	}
+
 	p.emitBytes(chunk.OP_DEFINE_GLOBAL, global)
 }
 
 func (p *Parser) namedVariable(name token.Token, canAssign bool) {
-	arg := p.identifierConstant(name)
+	var arg, getOp, setOp byte
+	res := p.resolveLocal(name)
+	if res != -1 {
+		arg = byte(res)
+		getOp = chunk.OP_GET_LOCAL
+		setOp = chunk.OP_SET_LOCAL
+	} else {
+		arg = p.identifierConstant(name)
+		getOp = chunk.OP_GET_GLOBAL
+		setOp = chunk.OP_SET_GLOBAL
+	}
 
 	if canAssign && p.match(token.EQUAL) {
 		p.expression()
-		p.emitBytes(chunk.OP_SET_GLOBAL, arg)
+		p.emitBytes(setOp, arg)
 	} else {
-		p.emitBytes(chunk.OP_GET_GLOBAL, arg)
+		p.emitBytes(getOp, arg)
 	}
 }
 
 func (p *Parser) parseVariable(errorMessage string) byte {
 	p.consume(token.IDENTIFIER, errorMessage)
+
+	p.declareVariable()
+	if p.ScopeDepth > 0 {
+		return 0
+	}
+
 	return p.identifierConstant(p.PrevToken())
 }
 
@@ -215,8 +272,39 @@ func (p *Parser) identifierConstant(name token.Token) byte {
 	return p.CurrChunk().AddValue(value.StringVal(name.Lexeme))
 }
 
-func (p *Parser) getRule(tokenType token.Type) *ParseRule {
-	return rules[tokenType]
+func (p *Parser) identifiersEqual(a, b token.Token) bool {
+	return a.Lexeme == b.Lexeme
+}
+
+func (p *Parser) markInitialized() {
+	p.Locals[len(p.Locals)-1].Depth = p.ScopeDepth
+}
+
+func (p *Parser) resolveLocal(name token.Token) int {
+	for i := len(p.Locals) - 1; i >= 0; i-- {
+		local := p.Locals[i]
+		if p.identifiersEqual(name, local.Name) {
+			if local.Depth == -1 {
+				loxerror.Error(-1, "Cannot read local variable in its own initializer.")
+			}
+			return i
+		}
+	}
+
+	return -1
+}
+
+func (p *Parser) beginScope() {
+	p.ScopeDepth++
+}
+
+func (p *Parser) endScope() {
+	p.ScopeDepth--
+
+	for len(p.Locals) > 0 && p.Locals[len(p.Locals)-1].Depth > p.ScopeDepth {
+		p.emitByte(chunk.OP_POP)
+		p.Locals = p.Locals[:len(p.Locals)-1]
+	}
 }
 
 func (p *Parser) consume(tokenType token.Type, errMsg string) {
@@ -255,6 +343,13 @@ func (p *Parser) binary(canAssign bool) {
 	case token.SLASH:
 		p.emitByte(chunk.OP_DIVIDE)
 	}
+}
+
+func (p *Parser) block() {
+	for !p.check(token.RIGHT_BRACE) && !p.check(token.EOF) {
+		p.declaration()
+	}
+	p.consume(token.RIGHT_BRACE, "Expect '}' after block.")
 }
 
 func (p *Parser) declaration() {
@@ -309,6 +404,10 @@ func (p *Parser) printStatement() {
 func (p *Parser) statement() {
 	if p.match(token.PRINT) {
 		p.printStatement()
+	} else if p.match(token.LEFT_BRACE) {
+		p.beginScope()
+		p.block()
+		p.endScope()
 	} else {
 		p.expressionStatement()
 	}

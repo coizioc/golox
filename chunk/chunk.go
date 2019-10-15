@@ -12,6 +12,8 @@ const (
 	OP_TRUE
 	OP_FALSE
 	OP_POP
+	OP_GET_LOCAL
+	OP_SET_LOCAL
 	OP_GET_GLOBAL
 	OP_DEFINE_GLOBAL
 	OP_SET_GLOBAL
@@ -65,6 +67,14 @@ func (c *Chunk) String() string {
 			sb.WriteString("FALSE\n")
 		case OP_POP:
 			sb.WriteString("POP\n")
+		case OP_GET_LOCAL:
+			i++
+			constant := c.Constants[c.Code[i]]
+			sb.WriteString(fmt.Sprintf("GET_LOCAL %v\n", constant))
+		case OP_SET_LOCAL:
+			i++
+			constant := c.Constants[c.Code[i]]
+			sb.WriteString(fmt.Sprintf("SET_LOCAL %v\n", constant))
 		case OP_GET_GLOBAL:
 			i++
 			constant := c.Constants[c.Code[i]]

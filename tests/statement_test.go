@@ -23,6 +23,25 @@ func TestVarDecl(t *testing.T) {
 		{`var x = "hello"; var y = "world"; x = y; print x;`, "world"},
 		{`var x = "hello"; var x; print x;`, nil},
 		{`var x = "hello"; var x = x; print x;`, "hello"},
+		{`var x; print x;`, nil},
+	}
+
+	for _, test := range tests {
+		RunStatementTest(t, test.source, test.result)
+	}
+}
+
+func TestLocalVars(t *testing.T) {
+	tests := []struct {
+		source string
+		result interface{}
+	}{
+		{`{var a = "a"; var b = a + " b"; print b;}`, "a b"},
+		{`{var a = "a"; var b = a + " b"; var c = a + " c"; print c;}`, "a c"},
+		{`{var a = "outer";{print a;}}`, "outer"},
+		{`{var a = "first";}{var a = "second"; print a;}`, "second"},
+		{`{var a = "outer";{var a = "inner"; print a;}}`, "inner"},
+		{`{var a = "first";}{var a = "second"; print a;}`, "second"},
 	}
 
 	for _, test := range tests {
