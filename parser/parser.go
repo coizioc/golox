@@ -1,118 +1,45 @@
 package parser
 
 import (
-	"golox/chunk"
 	"golox/loxerror"
+	"golox/repr"
 	"golox/scanner"
 	"golox/token"
-	"golox/value"
 )
 
-const (
-	PREC_NONE       = iota
-	PREC_ASSIGNMENT // =
-	PREC_OR         // or
-	PREC_AND        // and
-	PREC_EQUALITY   // == !==
-	PREC_COMPARISON // < > <= >=
-	PREC_TERM       // + -
-	PREC_FACTOR     // * /
-	PREC_UNARY      // ! -
-	PREC_CALL       // . () []
-	PREC_PRIMARY
-)
-
-type ParseFn = func(canAssign bool)
-
-type ParseRule struct {
-	Prefix     ParseFn
-	Infix      ParseFn
-	Precedence int
-}
-
-var rules = make(map[token.Type]*ParseRule)
-
-type Local struct {
-	Name  token.Token
-	Depth int
-}
 type Parser struct {
-	Locals         []Local
-	ScopeDepth     int
-	Current        int
-	Scanner        *scanner.Scanner
-	CompilingChunk *chunk.Chunk
+	Current  int
+	Scanner  *scanner.Scanner
+	Compiler *Compiler
 }
 
-func New(source string, c *chunk.Chunk) *Parser {
+func New(source string) *Parser {
 	sc := scanner.New(source)
+	comp := InitCompiler(repr.FUNC_SCRIPT, "")
 
-	return &Parser{[]Local{}, 0, 0, sc, c}
+	return &Parser{0, sc, comp}
 }
 
-func (p *Parser) Compile() bool {
+func (p *Parser) Compile() *repr.Function {
 	p.Scanner.ScanTokens()
 	if loxerror.HadError {
-		return false
+		return nil
 	}
 	if p.Scanner.Tokens[0].Type == token.EOF {
-		return false
+		return nil
 	}
 
 	p.parse()
 
-	return !loxerror.HadError
+	if loxerror.HadError {
+		return nil
+	} else {
+		return p.endCompiler()
+	}
 }
 
-func (p *Parser) InitRules() {
-	rules[token.LEFT_PAREN] = &ParseRule{p.grouping, nil, PREC_NONE}
-	rules[token.RIGHT_PAREN] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.LEFT_BRACE] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.RIGHT_BRACE] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.COMMA] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.DOT] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.MINUS] = &ParseRule{p.unary, p.binary, PREC_TERM}
-	rules[token.PLUS] = &ParseRule{nil, p.binary, PREC_TERM}
-	rules[token.SEMICOLON] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.SLASH] = &ParseRule{nil, p.binary, PREC_FACTOR}
-	rules[token.STAR] = &ParseRule{nil, p.binary, PREC_FACTOR}
-
-	rules[token.BANG] = &ParseRule{p.unary, nil, PREC_NONE}
-	rules[token.BANG_EQUAL] = &ParseRule{nil, p.binary, PREC_EQUALITY}
-	rules[token.EQUAL] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.EQUAL_EQUAL] = &ParseRule{nil, p.binary, PREC_EQUALITY}
-	rules[token.GREATER] = &ParseRule{nil, p.binary, PREC_COMPARISON}
-	rules[token.GREATER_EQUAL] = &ParseRule{nil, p.binary, PREC_COMPARISON}
-	rules[token.LESS] = &ParseRule{nil, p.binary, PREC_COMPARISON}
-	rules[token.LESS_EQUAL] = &ParseRule{nil, p.binary, PREC_COMPARISON}
-
-	rules[token.IDENTIFIER] = &ParseRule{p.variable, nil, PREC_NONE}
-	rules[token.STRING] = &ParseRule{p.string, nil, PREC_NONE}
-	rules[token.NUMBER] = &ParseRule{p.number, nil, PREC_NONE}
-
-	rules[token.AND] = &ParseRule{nil, p.and, PREC_AND}
-	rules[token.CLASS] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.ELSE] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.FALSE] = &ParseRule{p.literal, nil, PREC_NONE}
-	rules[token.FOR] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.FUN] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.IF] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.NIL] = &ParseRule{p.literal, nil, PREC_NONE}
-	rules[token.OR] = &ParseRule{nil, p.or, PREC_OR}
-	rules[token.PRINT] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.RETURN] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.SUPER] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.THIS] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.TRUE] = &ParseRule{p.literal, nil, PREC_NONE}
-	rules[token.VAR] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.WHILE] = &ParseRule{nil, nil, PREC_NONE}
-
-	rules[token.ILLEGAL] = &ParseRule{nil, nil, PREC_NONE}
-	rules[token.EOF] = &ParseRule{nil, nil, PREC_NONE}
-}
-
-func (p *Parser) CurrChunk() *chunk.Chunk {
-	return p.CompilingChunk
+func (p *Parser) CurrChunk() *repr.Chunk {
+	return p.Compiler.Function.Chunk
 }
 
 func (p *Parser) CurrToken() token.Token {
@@ -139,10 +66,6 @@ func (p *Parser) match(tokenType token.Type) bool {
 	return true
 }
 
-func (p *Parser) endCompiler() {
-	p.emitReturn()
-}
-
 func (p *Parser) emitByte(byte byte) {
 	p.CurrChunk().Write(byte)
 }
@@ -152,8 +75,8 @@ func (p *Parser) emitBytes(byte1, byte2 byte) {
 	p.emitByte(byte2)
 }
 
-func (p *Parser) emitConstant(value value.Value) {
-	p.emitBytes(chunk.OP_CONSTANT, p.makeConstant(value))
+func (p *Parser) emitConstant(value repr.Value) {
+	p.emitBytes(repr.OP_CONSTANT, p.makeConstant(value))
 }
 
 func (p *Parser) emitJump(instruction byte) int {
@@ -165,7 +88,7 @@ func (p *Parser) emitJump(instruction byte) int {
 }
 
 func (p *Parser) emitLoop(loopStart int) {
-	p.emitByte(chunk.OP_LOOP)
+	p.emitByte(repr.OP_LOOP)
 
 	offset := len(p.CurrChunk().Code) - loopStart + 2
 	if offset > 65535 {
@@ -177,7 +100,8 @@ func (p *Parser) emitLoop(loopStart int) {
 }
 
 func (p *Parser) emitReturn() {
-	p.emitByte(chunk.OP_RETURN)
+	p.emitByte(repr.OP_NIL)
+	p.emitByte(repr.OP_RETURN)
 }
 
 func (p *Parser) patchJump(offset int) {
@@ -192,7 +116,7 @@ func (p *Parser) patchJump(offset int) {
 	p.CurrChunk().Code[offset+1] = byte(jump & 0xff)
 }
 
-func (p *Parser) makeConstant(value value.Value) byte {
+func (p *Parser) makeConstant(value repr.Value) byte {
 	constant := p.CurrChunk().AddValue(value)
 	// TODO if constant > UINT8_MAX
 	return constant
@@ -203,7 +127,6 @@ func (p *Parser) parse() {
 	for !p.match(token.EOF) {
 		p.declaration()
 	}
-	p.endCompiler()
 }
 
 func (p *Parser) parsePrecedence(precedence int) {
@@ -233,21 +156,16 @@ func (p *Parser) getRule(tokenType token.Type) *ParseRule {
 	return rules[tokenType]
 }
 
-func (p *Parser) addLocal(name token.Token) {
-	local := Local{name, -1}
-	p.Locals = append(p.Locals, local)
-}
-
 func (p *Parser) declareVariable() {
-	if p.ScopeDepth == 0 {
+	if p.Compiler.ScopeDepth == 0 {
 		return
 	}
 
 	name := p.PrevToken()
 
-	for i := len(p.Locals) - 1; i >= 0; i-- {
-		local := p.Locals[i]
-		if local.Depth != -1 && local.Depth < p.ScopeDepth {
+	for i := len(p.Compiler.Locals) - 1; i >= 0; i-- {
+		local := p.Compiler.Locals[i]
+		if local.Depth != -1 && local.Depth < p.Compiler.ScopeDepth {
 			break
 		}
 
@@ -260,12 +178,12 @@ func (p *Parser) declareVariable() {
 }
 
 func (p *Parser) defineVariable(global byte) {
-	if p.ScopeDepth > 0 {
+	if p.Compiler.ScopeDepth > 0 {
 		p.markInitialized()
 		return
 	}
 
-	p.emitBytes(chunk.OP_DEFINE_GLOBAL, global)
+	p.emitBytes(repr.OP_DEFINE_GLOBAL, global)
 }
 
 func (p *Parser) namedVariable(name token.Token, canAssign bool) {
@@ -273,12 +191,12 @@ func (p *Parser) namedVariable(name token.Token, canAssign bool) {
 	res := p.resolveLocal(name)
 	if res != -1 {
 		arg = byte(res)
-		getOp = chunk.OP_GET_LOCAL
-		setOp = chunk.OP_SET_LOCAL
+		getOp = repr.OP_GET_LOCAL
+		setOp = repr.OP_SET_LOCAL
 	} else {
 		arg = p.identifierConstant(name)
-		getOp = chunk.OP_GET_GLOBAL
-		setOp = chunk.OP_SET_GLOBAL
+		getOp = repr.OP_GET_GLOBAL
+		setOp = repr.OP_SET_GLOBAL
 	}
 
 	if canAssign && p.match(token.EQUAL) {
@@ -293,7 +211,7 @@ func (p *Parser) parseVariable(errorMessage string) byte {
 	p.consume(token.IDENTIFIER, errorMessage)
 
 	p.declareVariable()
-	if p.ScopeDepth > 0 {
+	if p.Compiler.ScopeDepth > 0 {
 		return 0
 	}
 
@@ -301,7 +219,7 @@ func (p *Parser) parseVariable(errorMessage string) byte {
 }
 
 func (p *Parser) identifierConstant(name token.Token) byte {
-	return p.CurrChunk().AddValue(value.StringVal(name.Lexeme))
+	return p.CurrChunk().AddValue(repr.StringVal(name.Lexeme))
 }
 
 func (p *Parser) identifiersEqual(a, b token.Token) bool {
@@ -309,12 +227,15 @@ func (p *Parser) identifiersEqual(a, b token.Token) bool {
 }
 
 func (p *Parser) markInitialized() {
-	p.Locals[len(p.Locals)-1].Depth = p.ScopeDepth
+	if p.Compiler.ScopeDepth == 0 {
+		return
+	}
+	p.Compiler.Locals[len(p.Compiler.Locals)-1].Depth = p.Compiler.ScopeDepth
 }
 
 func (p *Parser) resolveLocal(name token.Token) int {
-	for i := len(p.Locals) - 1; i >= 0; i-- {
-		local := p.Locals[i]
+	for i := len(p.Compiler.Locals) - 1; i >= 0; i-- {
+		local := p.Compiler.Locals[i]
 		if p.identifiersEqual(name, local.Name) {
 			if local.Depth == -1 {
 				loxerror.Error(-1, "Cannot read local variable in its own initializer.")
@@ -327,15 +248,15 @@ func (p *Parser) resolveLocal(name token.Token) int {
 }
 
 func (p *Parser) beginScope() {
-	p.ScopeDepth++
+	p.Compiler.ScopeDepth++
 }
 
 func (p *Parser) endScope() {
-	p.ScopeDepth--
+	p.Compiler.ScopeDepth--
 
-	for len(p.Locals) > 0 && p.Locals[len(p.Locals)-1].Depth > p.ScopeDepth {
-		p.emitByte(chunk.OP_POP)
-		p.Locals = p.Locals[:len(p.Locals)-1]
+	for len(p.Compiler.Locals) > 0 && p.Compiler.Locals[len(p.Compiler.Locals)-1].Depth > p.Compiler.ScopeDepth {
+		p.emitByte(repr.OP_POP)
+		p.Compiler.Locals = p.Compiler.Locals[:len(p.Compiler.Locals)-1]
 	}
 }
 
@@ -348,10 +269,27 @@ func (p *Parser) consume(tokenType token.Type, errMsg string) {
 }
 
 func (p *Parser) and(canAssign bool) {
-	endJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
-	p.emitByte(chunk.OP_POP)
+	endJump := p.emitJump(repr.OP_JUMP_IF_FALSE)
+	p.emitByte(repr.OP_POP)
 	p.parsePrecedence(PREC_AND)
 	p.patchJump(endJump)
+}
+
+func (p *Parser) argumentList() byte {
+	argCount := 0
+	if !p.check(token.RIGHT_PAREN) {
+		for ok := true; ok; ok = p.match(token.COMMA) {
+			p.expression()
+
+			if argCount == 255 {
+				loxerror.Error(p.CurrToken().Line, "Cannot have more than 255 arguments.")
+			}
+			argCount++
+		}
+	}
+
+	p.consume(token.RIGHT_PAREN, "Expect ')' after arguments.")
+	return byte(argCount)
 }
 
 func (p *Parser) binary(canAssign bool) {
@@ -362,25 +300,25 @@ func (p *Parser) binary(canAssign bool) {
 
 	switch operatorType {
 	case token.BANG_EQUAL:
-		p.emitBytes(chunk.OP_EQUAL, chunk.OP_NOT)
+		p.emitBytes(repr.OP_EQUAL, repr.OP_NOT)
 	case token.EQUAL_EQUAL:
-		p.emitByte(chunk.OP_EQUAL)
+		p.emitByte(repr.OP_EQUAL)
 	case token.GREATER:
-		p.emitByte(chunk.OP_GREATER)
+		p.emitByte(repr.OP_GREATER)
 	case token.GREATER_EQUAL:
-		p.emitBytes(chunk.OP_LESS, chunk.OP_NOT)
+		p.emitBytes(repr.OP_LESS, repr.OP_NOT)
 	case token.LESS:
-		p.emitByte(chunk.OP_LESS)
+		p.emitByte(repr.OP_LESS)
 	case token.LESS_EQUAL:
-		p.emitBytes(chunk.OP_GREATER, chunk.OP_NOT)
+		p.emitBytes(repr.OP_GREATER, repr.OP_NOT)
 	case token.PLUS:
-		p.emitByte(chunk.OP_ADD)
+		p.emitByte(repr.OP_ADD)
 	case token.MINUS:
-		p.emitByte(chunk.OP_SUBTRACT)
+		p.emitByte(repr.OP_SUBTRACT)
 	case token.STAR:
-		p.emitByte(chunk.OP_MULTIPLY)
+		p.emitByte(repr.OP_MULTIPLY)
 	case token.SLASH:
-		p.emitByte(chunk.OP_DIVIDE)
+		p.emitByte(repr.OP_DIVIDE)
 	}
 }
 
@@ -391,9 +329,16 @@ func (p *Parser) block() {
 	p.consume(token.RIGHT_BRACE, "Expect '}' after block.")
 }
 
+func (p *Parser) call(canAssign bool) {
+	argCount := p.argumentList()
+	p.emitBytes(repr.OP_CALL, argCount)
+}
+
 func (p *Parser) declaration() {
 	if p.match(token.VAR) {
 		p.varDeclaration()
+	} else if p.match(token.FUN) {
+		p.funDeclaration()
 	} else {
 		p.statement()
 	}
@@ -406,7 +351,7 @@ func (p *Parser) expression() {
 func (p *Parser) expressionStatement() {
 	p.expression()
 	p.consume(token.SEMICOLON, "Expect ';' after expression.")
-	p.emitByte(chunk.OP_POP)
+	p.emitByte(repr.OP_POP)
 }
 
 func (p *Parser) forStatement() {
@@ -428,16 +373,16 @@ func (p *Parser) forStatement() {
 		p.expression()
 		p.consume(token.SEMICOLON, "Expect ';' after loop condition.")
 
-		exitJump = p.emitJump(chunk.OP_JUMP_IF_FALSE)
-		p.emitByte(chunk.OP_POP)
+		exitJump = p.emitJump(repr.OP_JUMP_IF_FALSE)
+		p.emitByte(repr.OP_POP)
 	}
 
 	if !p.match(token.RIGHT_PAREN) {
-		bodyJump := p.emitJump(chunk.OP_JUMP)
+		bodyJump := p.emitJump(repr.OP_JUMP)
 
 		incrementStart := len(p.CurrChunk().Code)
 		p.expression()
-		p.emitByte(chunk.OP_POP)
+		p.emitByte(repr.OP_POP)
 		p.consume(token.RIGHT_PAREN, "Expect ')' after for clauses.")
 
 		p.emitLoop(loopStart)
@@ -451,10 +396,46 @@ func (p *Parser) forStatement() {
 
 	if exitJump != -1 {
 		p.patchJump(exitJump)
-		p.emitByte(chunk.OP_POP)
+		p.emitByte(repr.OP_POP)
 	}
 
 	p.endScope()
+}
+
+func (p *Parser) function(funcType repr.FuncType) {
+	funcCompiler := InitCompiler(funcType, p.PrevToken().Lexeme)
+	p.encloseCompiler(funcCompiler)
+	p.beginScope()
+
+	p.consume(token.LEFT_PAREN, "Expect '(' after function name.")
+	if !p.check(token.RIGHT_PAREN) {
+		for ok := true; ok; ok = p.match(token.COMMA) {
+			p.Compiler.Function.Arity++
+			if p.Compiler.Function.Arity > 255 {
+				loxerror.Error(p.CurrToken().Line, "Cannot have more than 255 parameters.")
+			}
+
+			paramConstant := p.parseVariable("Expect parameter name.")
+			p.defineVariable(paramConstant)
+		}
+	}
+	p.consume(token.RIGHT_PAREN, "Expect ')' after parameters.")
+
+	p.consume(token.LEFT_BRACE, "Expect '{' before function body.")
+	p.block()
+
+	compiledFunction := p.endCompiler()
+
+	p.restoreCompiler()
+
+	p.emitBytes(repr.OP_CONSTANT, p.makeConstant(repr.FunctionVal(compiledFunction)))
+}
+
+func (p *Parser) funDeclaration() {
+	global := p.parseVariable("Expect function name.")
+	p.markInitialized()
+	p.function(repr.FUNC_FUNCTION)
+	p.defineVariable(global)
 }
 
 func (p *Parser) grouping(canAssign bool) {
@@ -467,14 +448,14 @@ func (p *Parser) ifStatement() {
 	p.expression()
 	p.consume(token.RIGHT_PAREN, "Expect ')' after condition.")
 
-	thenJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
-	p.emitByte(chunk.OP_POP)
+	thenJump := p.emitJump(repr.OP_JUMP_IF_FALSE)
+	p.emitByte(repr.OP_POP)
 	p.statement()
 
-	elseJump := p.emitJump(chunk.OP_JUMP)
+	elseJump := p.emitJump(repr.OP_JUMP)
 
 	p.patchJump(thenJump)
-	p.emitByte(chunk.OP_POP)
+	p.emitByte(repr.OP_POP)
 
 	if p.match(token.ELSE) {
 		p.statement()
@@ -483,14 +464,14 @@ func (p *Parser) ifStatement() {
 }
 
 func (p *Parser) literal(canAssign bool) {
-	// fmt.Printf("Prev token: %s", p.Scanner.Tokens[p.Current - 1].String())
+	// fmt.Printf("Prev token: %s", p.Scanner.Tokens[p.Current - 1].ValStr())
 	switch p.PrevToken().Type {
 	case token.FALSE:
-		p.emitByte(chunk.OP_FALSE)
+		p.emitByte(repr.OP_FALSE)
 	case token.NIL:
-		p.emitByte(chunk.OP_NIL)
+		p.emitByte(repr.OP_NIL)
 	case token.TRUE:
-		p.emitByte(chunk.OP_TRUE)
+		p.emitByte(repr.OP_TRUE)
 	default:
 		// Unreachable
 		return
@@ -499,15 +480,15 @@ func (p *Parser) literal(canAssign bool) {
 
 func (p *Parser) number(canAssign bool) {
 	val := p.PrevToken().Literal.(float64)
-	p.emitConstant(value.NumberVal(val))
+	p.emitConstant(repr.NumberVal(val))
 }
 
 func (p *Parser) or(canAssign bool) {
-	elseJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
-	endJump := p.emitJump(chunk.OP_JUMP)
+	elseJump := p.emitJump(repr.OP_JUMP_IF_FALSE)
+	endJump := p.emitJump(repr.OP_JUMP)
 
 	p.patchJump(elseJump)
-	p.emitByte(chunk.OP_POP)
+	p.emitByte(repr.OP_POP)
 
 	p.parsePrecedence(PREC_OR)
 	p.patchJump(endJump)
@@ -516,7 +497,20 @@ func (p *Parser) or(canAssign bool) {
 func (p *Parser) printStatement() {
 	p.expression()
 	p.consume(token.SEMICOLON, "Expect ; after value.")
-	p.emitByte(chunk.OP_PRINT)
+	p.emitByte(repr.OP_PRINT)
+}
+
+func (p *Parser) returnStatement() {
+	if p.Compiler.Type == repr.FUNC_SCRIPT {
+		loxerror.Error(p.CurrToken().Line, "Cannot return from top-level code.")
+	}
+	if p.match(token.SEMICOLON) {
+		p.emitReturn()
+	} else {
+		p.expression()
+		p.consume(token.SEMICOLON, "Expect ';' after return value.")
+		p.emitByte(repr.OP_RETURN)
+	}
 }
 
 func (p *Parser) statement() {
@@ -526,6 +520,8 @@ func (p *Parser) statement() {
 		p.forStatement()
 	} else if p.match(token.IF) {
 		p.ifStatement()
+	} else if p.match(token.RETURN) {
+		p.returnStatement()
 	} else if p.match(token.LEFT_BRACE) {
 		p.beginScope()
 		p.block()
@@ -539,7 +535,7 @@ func (p *Parser) statement() {
 
 func (p *Parser) string(canAssign bool) {
 	val := p.PrevToken().Literal.(string)
-	p.emitConstant(value.StringVal(val))
+	p.emitConstant(repr.StringVal(val))
 }
 
 func (p *Parser) unary(canAssign bool) {
@@ -547,9 +543,9 @@ func (p *Parser) unary(canAssign bool) {
 	p.parsePrecedence(PREC_UNARY)
 	switch operatorType {
 	case token.BANG:
-		p.emitByte(chunk.OP_NOT)
+		p.emitByte(repr.OP_NOT)
 	case token.MINUS:
-		p.emitByte(chunk.OP_NEGATE)
+		p.emitByte(repr.OP_NEGATE)
 	default:
 		return
 	}
@@ -564,7 +560,7 @@ func (p *Parser) varDeclaration() {
 	if p.match(token.EQUAL) {
 		p.expression()
 	} else {
-		p.emitByte(chunk.OP_NIL)
+		p.emitByte(repr.OP_NIL)
 	}
 	p.consume(token.SEMICOLON, "Expect ';' after variable declaration.")
 	p.defineVariable(global)
@@ -577,13 +573,13 @@ func (p *Parser) whileStatement() {
 	p.expression()
 	p.consume(token.RIGHT_PAREN, "Expect ')' after condition.")
 
-	exitJump := p.emitJump(chunk.OP_JUMP_IF_FALSE)
+	exitJump := p.emitJump(repr.OP_JUMP_IF_FALSE)
 
-	p.emitByte(chunk.OP_POP)
+	p.emitByte(repr.OP_POP)
 	p.statement()
 
 	p.emitLoop(loopStart)
 
 	p.patchJump(exitJump)
-	p.emitByte(chunk.OP_POP)
+	p.emitByte(repr.OP_POP)
 }

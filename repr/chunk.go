@@ -1,8 +1,7 @@
-package chunk
+package repr
 
 import (
 	"fmt"
-	"golox/value"
 	"strings"
 )
 
@@ -30,20 +29,17 @@ const (
 	OP_JUMP
 	OP_JUMP_IF_FALSE
 	OP_LOOP
+	OP_CALL
 	OP_RETURN
 )
 
 type Chunk struct {
 	Code      []byte
-	Constants []value.Value
+	Constants []Value
 }
 
-func New() *Chunk {
-	return &Chunk{[]byte{}, []value.Value{}}
-}
-
-func (c *Chunk) getConstant() {
-
+func NewChunk() *Chunk {
+	return &Chunk{[]byte{}, []Value{}}
 }
 
 func (c *Chunk) String() string {
@@ -54,13 +50,13 @@ func (c *Chunk) String() string {
 	}
 
 	sb.WriteString("]\n\n")
-	i := 0
-	for i < len(c.Code) {
-		sb.WriteString("\t")
-		switch c.Code[i] {
+	ip := 0
+	for ip < len(c.Code) {
+		sb.WriteString(fmt.Sprintf("\t%3d ", c.Code[ip]))
+		switch c.Code[ip] {
 		case OP_CONSTANT:
-			i++
-			constant := c.Constants[c.Code[i]]
+			ip++
+			constant := c.Constants[c.Code[ip]]
 			sb.WriteString(fmt.Sprintf("CONSTANT %v\n", constant))
 		case OP_NIL:
 			sb.WriteString("NIL\n")
@@ -71,24 +67,24 @@ func (c *Chunk) String() string {
 		case OP_POP:
 			sb.WriteString("POP\n")
 		case OP_GET_LOCAL:
-			i++
-			constant := c.Constants[c.Code[i]]
-			sb.WriteString(fmt.Sprintf("GET_LOCAL %v\n", constant))
+			ip++
+			//constant := c.Constants[c.Code[ip]]
+			sb.WriteString(fmt.Sprintf("GET_LOCAL &%v\n", ip))
 		case OP_SET_LOCAL:
-			i++
-			constant := c.Constants[c.Code[i]]
-			sb.WriteString(fmt.Sprintf("SET_LOCAL %v\n", constant))
+			ip++
+			//constant := c.Constants[c.Code[ip]]
+			sb.WriteString(fmt.Sprintf("SET_LOCAL &%v\n", ip))
 		case OP_GET_GLOBAL:
-			i++
-			constant := c.Constants[c.Code[i]]
+			ip++
+			constant := c.Constants[c.Code[ip]]
 			sb.WriteString(fmt.Sprintf("GET_GLOBAL %v\n", constant))
 		case OP_DEFINE_GLOBAL:
-			i++
-			constant := c.Constants[c.Code[i]]
+			ip++
+			constant := c.Constants[c.Code[ip]]
 			sb.WriteString(fmt.Sprintf("DEFINE_GLOBAL %v\n", constant))
 		case OP_SET_GLOBAL:
-			i++
-			constant := c.Constants[c.Code[i]]
+			ip++
+			constant := c.Constants[c.Code[ip]]
 			sb.WriteString(fmt.Sprintf("SET_GLOBAL %v\n", constant))
 		case OP_EQUAL:
 			sb.WriteString("EQUAL\n")
@@ -111,23 +107,27 @@ func (c *Chunk) String() string {
 		case OP_PRINT:
 			sb.WriteString("PRINT\n")
 		case OP_JUMP:
-			i += 2
-			jumpLen := c.Code[i-2]<<8 | c.Code[i-1]
+			ip += 3
+			jumpLen := int(c.Code[ip])<<8 | int(c.Code[ip-1])
 			sb.WriteString(fmt.Sprintf("JUMP %d\n", jumpLen))
 		case OP_JUMP_IF_FALSE:
-			i += 2
-			jumpLen := c.Code[i-2]<<8 | c.Code[i-1]
+			ip += 2
+			jumpLen := int(c.Code[ip])<<8 | int(c.Code[ip-1])
 			sb.WriteString(fmt.Sprintf("JUMP_IF_FALSE %d\n", jumpLen))
 		case OP_LOOP:
-			i += 2
-			jumpLen := c.Code[i-2]<<8 | c.Code[i-1]
+			ip += 2
+			jumpLen := int(c.Code[ip])<<8 | int(c.Code[ip-1])
 			sb.WriteString(fmt.Sprintf("LOOP %d\n", jumpLen))
+		case OP_CALL:
+			ip++
+			argCount := c.Code[ip]
+			sb.WriteString(fmt.Sprintf("CALL %d\n", argCount))
 		case OP_RETURN:
 			sb.WriteString("RETURN\n")
 		default:
-			sb.WriteString(fmt.Sprintf("UNKNOWN_OP %v\n", c.Code[i]))
+			sb.WriteString(fmt.Sprintf("UNKNOWN_OP %v\n", c.Code[ip]))
 		}
-		i++
+		ip++
 	}
 	return sb.String()
 }
@@ -136,7 +136,7 @@ func (c *Chunk) Write(byte byte) {
 	c.Code = append(c.Code, byte)
 }
 
-func (c *Chunk) AddValue(v value.Value) byte {
+func (c *Chunk) AddValue(v Value) byte {
 	c.Constants = append(c.Constants, v)
 	return byte(len(c.Constants) - 1)
 }
